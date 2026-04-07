@@ -152,12 +152,14 @@ def compute_percent_from_metering_data(
         return None
 
     # ------------------------------------------------------------------
-    # Step 2 — Safely extract progress counters
-    # Using dict.get() with a None default avoids KeyError and naturally
-    # flows into get_percent_complete's own None-handling logic.
+    # Step 2 — Safely extract and coerce progress counters
+    # Raw dictionary values may be strings, floats, booleans, or other
+    # non-integer types — _safe_int() coerces valid numeric values to int
+    # and returns None for anything that cannot be safely interpreted as
+    # an integer, preventing TypeError crashes in get_percent_complete().
     # ------------------------------------------------------------------
-    current_index: Optional[int] = metering_data.get("current_index")
-    total_steps: Optional[int] = metering_data.get("total_steps")
+    current_index: Optional[int] = _safe_int(metering_data.get("current_index"))
+    total_steps: Optional[int] = _safe_int(metering_data.get("total_steps"))
 
     # ------------------------------------------------------------------
     # Step 3 — Delegate to the primary computation function
@@ -165,3 +167,44 @@ def compute_percent_from_metering_data(
     # get_percent_complete — no need to duplicate them here.
     # ------------------------------------------------------------------
     return get_percent_complete(current_index, total_steps)
+
+
+# ======================================================================
+# Private helpers
+# ======================================================================
+
+
+def _safe_int(value: object) -> Optional[int]:
+    """Safely coerce a value to ``int``, returning ``None`` on failure.
+
+    Used when extracting ``current_index`` or ``total_steps`` from raw
+    metering dictionaries where the value type is uncertain.  This mirrors
+    the ``_safe_int()`` helpers in the API handler modules
+    (``src.api.runs.metering`` and ``src.api.runs.metering_current``) for
+    consistent defensive type coercion at the dict-extraction boundary.
+
+    Parameters
+    ----------
+    value : object
+        The raw value to convert.  Accepts any type so the function can
+        handle untrusted dictionary contents gracefully.
+
+    Returns
+    -------
+    Optional[int]
+        The integer representation, or ``None`` if coercion is not possible
+        or the value is a boolean (booleans are explicitly rejected since
+        ``bool`` is a subclass of ``int`` in Python).
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value == int(value):
+        return int(value)
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return None
