@@ -78,6 +78,8 @@ The response includes `percent_complete` nested within the `metering` object ins
 | Value greater than 100 | N/A | ❌ Bug |
 | Value less than 0 | N/A | ❌ Bug |
 | String instead of number | N/A | ❌ Bug |
+| Inconsistent field name across APIs | N/A | ❌ Bug |
+| Present in one API but missing in others | N/A | ❌ Bug |
 
 ## Setup
 

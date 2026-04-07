@@ -269,6 +269,7 @@ def boundary_values() -> List[tuple]:
         (100.0, True),      # maximum valid value
         (50.5, True),       # mid-range valid value
         (None, True),       # null is valid
+        (50, True),         # integer accepted as float (int→float coercion)
         (-0.1, False),      # below range — invalid
         (100.1, False),     # above range — invalid
         ("50", False),      # string type — invalid

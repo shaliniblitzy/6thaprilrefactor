@@ -24,6 +24,8 @@ Key design rules (derived from the Agent Action Plan):
   handler never performs arithmetic on step counters directly.
 """
 
+from __future__ import annotations
+
 from typing import Any, Dict, List, Optional
 
 from src.models.metering import MeteringResponse, RunData

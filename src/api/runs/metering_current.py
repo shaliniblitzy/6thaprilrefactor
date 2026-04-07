@@ -102,8 +102,8 @@ def get_runs_metering_current(
         nested_metering: Any = current_run_data.get("metering")
         if isinstance(nested_metering, dict):
             percent = get_percent_complete(
-                current_index=nested_metering.get("current_index"),
-                total_steps=nested_metering.get("total_steps"),
+                current_index=_safe_int(nested_metering.get("current_index")),
+                total_steps=_safe_int(nested_metering.get("total_steps")),
             )
 
     # ------------------------------------------------------------------
@@ -165,3 +165,35 @@ def _build_run_data(
         enriched["metering"] = {"percent_complete": percent}
 
     return RunData(**enriched)
+
+
+def _safe_int(value: Any) -> Optional[int]:
+    """Safely coerce a value to ``int``, returning ``None`` on failure.
+
+    Used when extracting ``current_index`` or ``total_steps`` from raw
+    dictionaries where the value type is uncertain.  This mirrors the
+    ``_safe_int()`` helper in ``src.api.runs.metering`` for consistent
+    defensive type coercion across both metering handlers.
+
+    Parameters
+    ----------
+    value : Any
+        The raw value to convert.
+
+    Returns
+    -------
+    Optional[int]
+        The integer representation, or ``None`` if coercion is not possible.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value == int(value):
+        return int(value)
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return None

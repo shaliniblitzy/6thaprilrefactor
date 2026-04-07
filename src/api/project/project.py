@@ -38,10 +38,8 @@ from typing import Any, Dict, Optional
 
 from src.models.metering import MeteringData
 from src.models.project import ProjectData, ProjectResponse
-from src.services.metering_service import (
-    compute_percent_from_metering_data,
-    get_percent_complete,
-)
+from src.services.metering_service import compute_percent_from_metering_data
+from src.validators.percent_complete import validate_percent_complete
 
 
 def get_project(
@@ -149,25 +147,19 @@ def get_project(
             metering_raw
         )
     elif "percent_complete" in metering_raw:
-        # Use the pre-computed value and run it through the service layer
-        # validation to ensure it respects the [0.0, 100.0] constraint.
+        # Use the pre-computed value and run it through the centralised
+        # validator to ensure it respects the [0.0, 100.0] constraint and
+        # strict type enforcement (booleans and strings are rejected).
         raw_pct = metering_raw.get("percent_complete")
         if raw_pct is None:
             percent_complete = None
         else:
-            # Delegate to get_percent_complete with synthetic step values
-            # to leverage the clamping and validation pipeline.  Since the
-            # value is already a percentage, we map it as index/100.
             try:
-                percent_complete = get_percent_complete(
-                    current_index=int(raw_pct),
-                    total_steps=100,
-                )
-                # For non-integer raw values, recompute with higher precision
-                if isinstance(raw_pct, (int, float)) and not isinstance(raw_pct, bool):
-                    from src.validators.percent_complete import validate_percent_complete
-                    clamped = max(0.0, min(100.0, float(raw_pct)))
-                    percent_complete = validate_percent_complete(clamped)
+                # validate_percent_complete handles type enforcement
+                # (rejects bool, str, etc.), range checking, and
+                # int→float coercion in a single call — no need for
+                # the identity round-trip through get_percent_complete().
+                percent_complete = validate_percent_complete(raw_pct)
             except (TypeError, ValueError):
                 percent_complete = None
     else:

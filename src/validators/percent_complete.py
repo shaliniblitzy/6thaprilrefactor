@@ -13,6 +13,7 @@ validation lives in the models layer; this module provides the shared business
 rule that those models and the service layer both delegate to.
 """
 
+import math
 from typing import Optional
 
 
@@ -92,6 +93,21 @@ def validate_percent_complete(value: object) -> Optional[float]:
     # passed an ``int`` or a ``float``.
     # ------------------------------------------------------------------
     result: float = float(value)
+
+    # ------------------------------------------------------------------
+    # Step 3b — Reject NaN and Infinity
+    # NaN comparisons always return False (NaN < 0.0 is False and
+    # NaN > 100.0 is False), so NaN would silently bypass the range
+    # check below.  Similarly, float('inf') and float('-inf') are not
+    # valid percentages.  Guard against these non-finite values
+    # immediately after conversion to ensure AAP Goal 5 edge case
+    # handling is fully enforced.
+    # ------------------------------------------------------------------
+    if math.isnan(result) or math.isinf(result):
+        raise ValueError(
+            f"percent_complete must be a finite number between 0.0 and 100.0, "
+            f"got {result}"
+        )
 
     # ------------------------------------------------------------------
     # Step 4 — Range validation
